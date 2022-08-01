@@ -1,4 +1,10 @@
 // import "./style.css";
+import katex from "katex";
+
+let element = document.getElementById("formula")!;
+katex.render("\\phi = \\theta_2 - \\theta_1", element, {
+  throwOnError: false,
+});
 
 function color(x: number) {
   return 0.5 * Math.cos(2 * Math.PI * x) + 0.5;
@@ -17,8 +23,33 @@ class HCONN {
 
   step() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let phi = this.collection[1].p - this.collection[0].p;
+    katex.render(
+      String.raw`\phi = \theta_2 - \theta_1=${Math.abs(phi).toFixed(2)}`,
+      element,
+      {
+        throwOnError: false,
+      }
+    );
     this.collection[0].step(this.collection[1].p - this.collection[0].p);
     this.collection[1].step(this.collection[0].p - this.collection[1].p);
+  }
+  reset() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    this.collection.forEach((x) => {
+      x.reset();
+      x.animate();
+    });
+    katex.render(
+      String.raw`\phi = \theta_2 - \theta_1=${
+        this.collection[1].p - this.collection[0].p
+      }`,
+      element,
+      {
+        throwOnError: false,
+      }
+    );
   }
 }
 
@@ -28,10 +59,13 @@ class HCO {
   omega = 2;
   x = 150;
   dt = 0.01;
+  ogp = 0;
 
   constructor(x: number, p: number) {
     this.x = x;
     this.p = p;
+    this.ogp = p;
+
     this.r = (p + 0.5) % 1;
   }
 
@@ -85,24 +119,48 @@ class HCO {
     this.animate();
     // setTimeout(this.step, 500);
   }
+  reset() {
+    this.p = this.ogp;
+    this.r = (this.ogp + 0.5) % 1;
+    // this.animate();
+    // console.log(this.ogp);
+  }
 }
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
 
 let h = new HCONN();
-function stp() {
+
+let y = setInterval(() => {
   h.step();
-  setTimeout(stp, 25);
-}
-stp();
+}, 25);
 
-// h.step();
+let el = document.getElementById("pause");
+let reset = document.getElementById("reset");
 
-// h.step();
-// setInterval(() => {
-//   h.step();
-// }, 500);
+let playing = true;
 
-// setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+el?.addEventListener("click", () => {
+  if (playing) {
+    clearInterval(y);
+    playing = false;
+    el!.innerText = "play";
+  } else {
+    playing = true;
+    y = setInterval(() => {
+      h.step();
+    }, 25);
+    el!.innerText = "pause";
+  }
+});
+
+reset?.addEventListener("click", () => {
+  h.reset();
+
+  clearInterval(y);
+  el!.innerText = "play";
+  playing = false;
+});
+
 export {};
