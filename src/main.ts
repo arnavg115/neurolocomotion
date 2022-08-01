@@ -8,30 +8,26 @@ function slope(x: number) {
   return 0.5 * Math.cos(2 * Math.PI * x);
 }
 
+function H(x: number) {
+  return -0.1 * Math.sin(2 * Math.PI * x);
+}
+
 class HCONN {
-  collection = [
-    new HCO(150, 0),
-    new HCO(300, 0.25),
-    new HCO(450, 0.5),
-    new HCO(600, 0.75),
-  ];
+  collection = [new HCO(150, 0), new HCO(300, 0.25)];
 
   step() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    for (let x = 0; x < this.collection.length; x++) {
-      const y = this.collection[x];
-
-      y.step();
-    }
+    this.collection[0].step(this.collection[1].p - this.collection[0].p);
+    this.collection[1].step(this.collection[0].p - this.collection[1].p);
   }
 }
 
 class HCO {
   p = 0;
   r = 0.5;
-  omega = 0.1;
+  omega = 2;
   x = 150;
+  dt = 0.01;
 
   constructor(x: number, p: number) {
     this.x = x;
@@ -39,10 +35,10 @@ class HCO {
     this.r = (p + 0.5) % 1;
   }
 
-  update() {
-    this.p = (this.omega + this.p) % 1;
+  update(phi: number) {
+    this.p = (this.dt * (this.omega + H(phi)) + this.p) % 1;
 
-    this.r = (this.omega + this.r) % 1;
+    this.r = (this.p + 0.5) % 1;
   }
 
   animate() {
@@ -74,13 +70,6 @@ class HCO {
     // Rotated rectangle
     ctx.fillStyle = "red";
     ctx.fillRect(this.x - 5, 300, 10, 140);
-
-    // ctx.translate(145, 100);
-    // ctx.rotate(slope(this.p));
-    // ctx.fillStyle = "red";
-    // ctx.fillRect(145, 300, 10, 80);
-    // ctx.fillStyle = "red";
-
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     // ctx.rotate(Math.PI * 1.5);
@@ -91,8 +80,8 @@ class HCO {
     // ctx.rotate(Math.PI);s
     ctx.stroke();
   }
-  step() {
-    this.update();
+  step(phi: number) {
+    this.update(phi);
     this.animate();
     // setTimeout(this.step, 500);
   }
@@ -104,7 +93,7 @@ const ctx = canvas.getContext("2d")!;
 let h = new HCONN();
 function stp() {
   h.step();
-  setTimeout(stp, 100);
+  setTimeout(stp, 25);
 }
 stp();
 
