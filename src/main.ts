@@ -1,6 +1,6 @@
 // import "./style.css";
 import katex from "katex";
-import Chart from "chart.js/auto";
+// import Chart from "chart.js/auto";
 
 // const labels = ["January", "February", "March", "April", "May", "June"];
 // const ctx2 = document.getElementById("myChart") as HTMLCanvasElement
