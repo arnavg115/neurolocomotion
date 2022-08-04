@@ -1,5 +1,9 @@
 // import "./style.css";
 import katex from "katex";
+import Chart from "chart.js/auto";
+
+// const labels = ["January", "February", "March", "April", "May", "June"];
+// const ctx2 = document.getElementById("myChart") as HTMLCanvasElement
 
 let element = document.getElementById("formula")!;
 katex.render("\\phi = \\theta_2 - \\theta_1", element, {
@@ -14,26 +18,51 @@ function slope(x: number) {
   return 0.5 * Math.cos(2 * Math.PI * x);
 }
 
-function H(x: number) {
-  return -0.1 * Math.sin(2 * Math.PI * x);
+function G(x: number) {
+  if (x < 0) {
+    let y = 1 + x;
+    return -y * (y - 0.25) * (y - 1);
+  }
+  return -x * (x - 0.25) * (x - 1);
 }
 
 class HCONN {
-  collection = [new HCO(150, 0), new HCO(300, 0.25)];
+  collection = [
+    new HCO(150, 0.0, 1),
+    new HCO(300, 0.5, 2),
+    new HCO(450, 0.3, 3),
+    new HCO(600, 0.9, 4),
+  ];
+  phi_calc() {
+    let out: number[] = [];
+    for (let x = 0; x < this.collection.length - 1; x++) {
+      out.push(this.collection[x + 1].p - this.collection[x].p);
+    }
+    return out;
+  }
 
   step() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    let phi = this.collection[1].p - this.collection[0].p;
-    katex.render(
-      String.raw`\phi = \theta_2 - \theta_1=${Math.abs(phi).toFixed(2)}`,
-      element,
-      {
-        throwOnError: false,
-      }
-    );
-    this.collection[0].step(this.collection[1].p - this.collection[0].p);
-    this.collection[1].step(this.collection[0].p - this.collection[1].p);
+    let phi = this.phi_calc();
+    katex.render(this.phi_to_katex(phi), element, {
+      throwOnError: false,
+    });
+    this.collection[0].step(phi[0]);
+    this.collection[1].step(-phi[0], 0.5, G(phi[1] % 1));
+    this.collection[2].step(-phi[1], 0.5, G(phi[2] % 1));
+    this.collection[3].step(-phi[2], 0.5);
   }
+  phi_to_katex(phi: number[]) {
+    let out = "";
+    for (let x = 0; x < phi.length; x++) {
+      const y = phi[x];
+      out += String.raw`\phi_${x + 1} = \theta_${x + 2} - \theta_${
+        x + 1
+      } =${Math.abs(y).toFixed(2)}\\ `;
+    }
+    return out;
+  }
+
   reset() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -41,15 +70,10 @@ class HCONN {
       x.reset();
       x.animate();
     });
-    katex.render(
-      String.raw`\phi = \theta_2 - \theta_1=${
-        this.collection[1].p - this.collection[0].p
-      }`,
-      element,
-      {
-        throwOnError: false,
-      }
-    );
+    const phi = this.phi_calc();
+    katex.render(this.phi_to_katex(phi), element, {
+      throwOnError: false,
+    });
   }
 }
 
@@ -60,27 +84,31 @@ class HCO {
   x = 150;
   dt = 0.01;
   ogp = 0;
+  n = 0;
 
-  constructor(x: number, p: number) {
+  constructor(x: number, p: number, n: number) {
     this.x = x;
     this.p = p;
     this.ogp = p;
+    this.n = n;
 
     this.r = (p + 0.5) % 1;
   }
 
-  update(phi: number) {
-    this.p = (this.dt * (this.omega + H(phi)) + this.p) % 1;
+  update(phi: number, anti: number, other: number) {
+    // console.log(G(phi + 0.5));
 
-    this.r = (this.p + 0.5) % 1;
+    this.p = this.dt * (this.omega + G((phi + anti) % 1) + other) + this.p;
+
+    this.r = this.p + 0.5;
   }
 
   animate() {
     ctx.strokeStyle = "black";
     ctx.lineWidth = 1;
 
-    let p_1 = color(this.p);
-    let r_1 = color(this.r);
+    let p_1 = color(this.p % 1);
+    let r_1 = color(this.r % 1);
     // console.log(p_1);
 
     ctx.fillStyle = `rgba(0,255,0,${p_1})`;
@@ -95,10 +123,13 @@ class HCO {
     ctx.ellipse(this.x, 225, 50, 50, 0, -Math.PI, Math.PI);
     ctx.stroke();
     ctx.fill();
+    ctx.fillStyle = "rgb(0,0,0)";
+    ctx.font = "24px sans-serif";
+    ctx.fillText(`Θ${this.n}`, this.x - 10, 105);
 
     // Matrix transformation
     ctx.translate(this.x, 300);
-    ctx.rotate(slope(this.p));
+    ctx.rotate(slope(this.p % 1));
     ctx.translate(-this.x, -300);
 
     // Rotated rectangle
@@ -114,8 +145,8 @@ class HCO {
     // ctx.rotate(Math.PI);s
     ctx.stroke();
   }
-  step(phi: number) {
-    this.update(phi);
+  step(phi: number, anti = 0, other = 0) {
+    this.update(phi, anti, other);
     this.animate();
     // setTimeout(this.step, 500);
   }
