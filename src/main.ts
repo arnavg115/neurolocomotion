@@ -5,6 +5,11 @@ import katex from "katex";
 // const labels = ["January", "February", "March", "April", "May", "June"];
 // const ctx2 = document.getElementById("myChart") as HTMLCanvasElement
 
+function generate(lower: number, higher: number) {
+  let diff = higher - lower;
+  return diff * Math.random() + lower;
+}
+
 let element = document.getElementById("formula")!;
 katex.render("\\phi = \\theta_2 - \\theta_1", element, {
   throwOnError: false,
@@ -28,10 +33,10 @@ function G(x: number) {
 
 class HCONN {
   collection = [
-    new HCO(150, 0.0, 1),
-    new HCO(300, 0.5, 2),
-    new HCO(450, 0.3, 3),
-    new HCO(600, 0.9, 4),
+    new HCO(150, generate(0, 0.5), 1),
+    new HCO(300, generate(0.25, 0.75), 2),
+    new HCO(450, generate(0.75, 1), 3),
+    new HCO(600, generate(0.8, 1), 4),
   ];
   phi_calc() {
     let out: number[] = [];
